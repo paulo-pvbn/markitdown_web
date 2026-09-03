@@ -41,4 +41,8 @@ Backup de status completo no Notion: [MarkItDown Web — Status Atual e Backup T
 
 ## Estado em 2026-09-03 (bootstrap)
 
-Testado ponta a ponta em ambiente de sandbox: conversão de `.docx` via `/convert`, `/convert-zip` e via `watch.py` (drop em `raw/` → `.md` automático em `converted/`, com front matter) — todos funcionando. Ainda não integrado ao fork real no GitHub nem rodado na máquina pessoal do Paulo — objetivo da Ordem 01.
+Bootstrap publicado no fork real: commit `51e6546`, tag `v1.00`, push concluído em `origin/main` e `origin/v1.00` (relatório completo em `audit/2026-09-03-ORDEM-01-bootstrap-markitdown-web.md`). Docker não estava disponível na máquina no momento do bootstrap — validação feita via venv local (`python app.py`); `GET /` e `POST /convert` confirmados funcionando ponta a ponta com arquivo real. Ainda não testados: build Docker (`docker compose up -d --build`), `POST /convert-zip`, e o pipeline `watch.py` (`raw/` → `converted/`).
+
+### Pendência
+
+Decisão em aberto: instalar Docker Desktop na máquina antes de validar o caminho documentado no `webapp/README.md` para rede local/Tailscale, ou seguir testando via venv por enquanto.
