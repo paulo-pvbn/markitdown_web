@@ -1,0 +1,18 @@
+# Servidor web
+flask>=3.0
+
+# Monitorar pasta e converter automaticamente (watch.py)
+watchdog>=4.0
+
+# Instala o pacote markitdown deste próprio repositório (packages/markitdown),
+# só com os extras que funcionam 100% offline: PDF, Word, PowerPoint,
+# Excel (novo e antigo) e Outlook.
+#
+# De propósito NÃO incluímos:
+#   - audio-transcription  (por padrão usa a API de voz do Google, precisa de internet)
+#   - youtube-transcription (busca a transcrição no YouTube, precisa de internet)
+#   - az-doc-intel / az-content-understanding (serviços pagos do Azure)
+#
+# HTML, CSV/JSON/XML, ZIP, EPUB e metadados de imagem já funcionam com as
+# dependências básicas do markitdown, sem precisar de extras.
+-e ../packages/markitdown[pptx,docx,xlsx,xls,pdf,outlook]

@@ -1,0 +1,21 @@
+services:
+  markitdown-web:
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    # Sobe automaticamente quando a máquina/servidor liga.
+
+  markitdown-watch:
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
+    command: ["python", "watch.py"]
+    volumes:
+      # Solte arquivos em ./raw/<nome-do-projeto>/ na sua máquina;
+      # o .md correspondente aparece em ./converted/<nome-do-projeto>/.
+      - ./raw:/app/webapp/raw
+      - ./converted:/app/webapp/converted
+    restart: unless-stopped

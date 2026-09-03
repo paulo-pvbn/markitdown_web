@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarkItDown — Conversor Offline</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    --accent: #5b8cff;
+    --accent-dim: #3a5ac2;
+    --ok: #4caf7d;
+    --err: #e0645a;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 28px 24px 8px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  header h1 {
+    font-size: 22px;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--text-dim);
+    margin: 0;
+    font-size: 14px;
+  }
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 20px 24px 60px;
+  }
+  .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: var(--panel);
+  }
+  .dropzone.drag {
+    border-color: var(--accent);
+    background: var(--panel-2);
+  }
+  .dropzone p { margin: 0; color: var(--text-dim); font-size: 14px; }
+  .dropzone strong { color: var(--text); }
+  input[type=file] { display: none; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  button {
+    font: inherit;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:disabled { background: var(--accent-dim); cursor: not-allowed; opacity: .6; }
+  .btn-secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+
+  .filelist {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13.5px;
+  }
+  .file-row .name { color: var(--text); }
+  .file-row .size { color: var(--text-dim); font-size: 12px; margin-left: 8px; }
+  .file-row .remove { color: var(--text-dim); cursor: pointer; background: none; border: none; font-size: 16px; padding: 0 4px; }
+
+  .results { margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
+  .result-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .result-head .name { font-size: 13.5px; font-weight: 500; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
+  .badge.ok { background: rgba(76,175,125,.15); color: var(--ok); }
+  .badge.err { background: rgba(224,100,90,.15); color: var(--err); }
+  .result-body textarea {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+    padding: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .result-body .error-text {
+    padding: 14px;
+    color: var(--err);
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
+  }
+  .result-foot {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .status {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 14px;
+  }
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 30px 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MarkItDown — Conversor Offline</h1>
+  <p>Converta PDF, Word, Excel, PowerPoint, Outlook, HTML e mais em Markdown. Tudo roda localmente — nenhum arquivo sai desta máquina.</p>
+</header>
+
+<main>
+  <div class="dropzone" id="dropzone">
+    <p><strong>Arraste arquivos aqui</strong> ou clique para selecionar</p>
+    <input type="file" id="fileInput" multiple>
+  </div>
+
+  <div class="filelist" id="fileList"></div>
+
+  <div class="actions">
+    <button class="btn-primary" id="convertBtn" disabled>Converter</button>
+    <button class="btn-secondary" id="zipBtn" disabled>Baixar tudo (.zip)</button>
+    <button class="btn-ghost" id="clearBtn" disabled>Limpar</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="results" id="results"></div>
+</main>
+
+<footer>MarkItDown Web · conversão local, sem chamadas externas</footer>
+
+<script>
+let selectedFiles = [];
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileListEl = document.getElementById('fileList');
+const convertBtn = document.getElementById('convertBtn');
+const zipBtn = document.getElementById('zipBtn');
+const clearBtn = document.getElementById('clearBtn');
+const statusEl = document.getElementById('status');
+const resultsEl = document.getElementById('results');
+
+dropzone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+['dragenter', 'dragover'].forEach(evt =>
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+);
+['dragleave', 'drop'].forEach(evt =>
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+);
+dropzone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function addFiles(fileListObj) {
+  for (const f of fileListObj) selectedFiles.push(f);
+  renderFileList();
+}
+
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderFileList();
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = '';
+  selectedFiles.forEach((f, idx) => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.innerHTML = `
+      <span><span class="name">${escapeHtml(f.name)}</span><span class="size">${formatSize(f.size)}</span></span>
+      <button class="remove" title="Remover">&times;</button>
+    `;
+    row.querySelector('.remove').addEventListener('click', () => removeFile(idx));
+    fileListEl.appendChild(row);
+  });
+  const hasFiles = selectedFiles.length > 0;
+  convertBtn.disabled = !hasFiles;
+  zipBtn.disabled = !hasFiles;
+  clearBtn.disabled = !hasFiles;
+}
+
+clearBtn.addEventListener('click', () => {
+  selectedFiles = [];
+  resultsEl.innerHTML = '';
+  statusEl.textContent = '';
+  renderFileList();
+});
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+convertBtn.addEventListener('click', async () => {
+  if (selectedFiles.length === 0) return;
+  convertBtn.disabled = true;
+  statusEl.textContent = 'Convertendo...';
+  resultsEl.innerHTML = '';
+
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('files', f));
+
+  try {
+    const res = await fetch('/convert', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) {
+      statusEl.textContent = 'Erro: ' + data.error;
+    } else {
+      statusEl.textContent = `${data.results.length} arquivo(s) processado(s).`;
+      data.results.forEach(renderResult);
+    }
+  } catch (err) {
+    statusEl.textContent = 'Erro de conexão com o servidor local: ' + err.message;
+  } finally {
+    convertBtn.disabled = false;
+  }
+});
+
+zipBtn.addEventListener('click', async () => {
+  if (selectedFiles.length === 0) return;
+  zipBtn.disabled = true;
+  statusEl.textContent = 'Gerando .zip...';
+
+  const formData = new FormData();
+  selectedFiles.forEach(f => formData.append('files', f));
+
+  try {
+    const res = await fetch('/convert-zip', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('falha ao gerar o zip');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'markdown_convertido.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    statusEl.textContent = 'Download iniciado.';
+  } catch (err) {
+    statusEl.textContent = 'Erro: ' + err.message;
+  } finally {
+    zipBtn.disabled = false;
+  }
+});
+
+function renderResult(r) {
+  const card = document.createElement('div');
+  card.className = 'result-card';
+
+  if (r.ok) {
+    card.innerHTML = `
+      <div class="result-head">
+        <span class="name">${escapeHtml(r.filename)}</span>
+        <span class="badge ok">convertido</span>
+      </div>
+      <div class="result-body">
+        <textarea readonly></textarea>
+      </div>
+      <div class="result-foot">
+        <button class="btn-secondary copy-btn">Copiar</button>
+        <button class="btn-secondary download-btn">Baixar .md</button>
+      </div>
+    `;
+    const textarea = card.querySelector('textarea');
+    textarea.value = r.markdown;
+
+    card.querySelector('.copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(r.markdown);
+    });
+    card.querySelector('.download-btn').addEventListener('click', () => {
+      const blob = new Blob([r.markdown], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const base = r.filename.replace(/\.[^.]+$/, '');
+      a.href = url;
+      a.download = base + '.md';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  } else {
+    card.innerHTML = `
+      <div class="result-head">
+        <span class="name">${escapeHtml(r.filename)}</span>
+        <span class="badge err">erro</span>
+      </div>
+      <div class="result-body">
+        <div class="error-text"></div>
+      </div>
+    `;
+    card.querySelector('.error-text').textContent = r.error;
+  }
+
+  resultsEl.appendChild(card);
+}
+</script>
+
+</body>
+</html>
