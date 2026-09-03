@@ -166,3 +166,8 @@ cython_debug/
 src/.DS_Store
 .DS_Store
 .cursorrules
+
+# MarkItDown Web: material real de piloto (raw/) e saida convertida
+# (converted/) sao dados do usuario, nao codigo-fonte - nunca versionar.
+webapp/raw/
+webapp/converted/
