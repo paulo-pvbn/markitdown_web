@@ -85,11 +85,15 @@ tem, ou qualquer VPS ~R$20–40/mês). Diferenças em relação às opções aci
 - Com vários arquivos, dá pra baixar tudo de uma vez em um `.zip`
   (botão "Baixar tudo").
 
-## Pipeline automatizado para RAG (Claude Projects)
+## Pipeline automatizado — pasta de saída pronta pra qualquer app/agente de IA
 
 `watch.py` monitora uma pasta `raw/` e converte tudo que cair nela
 automaticamente para Markdown em `converted/`, sem precisar abrir o
-navegador nem clicar em nada.
+navegador nem clicar em nada. O resultado é uma pasta de Markdown
+organizada e documentada que qualquer app ou agente de IA pode consumir
+— Claude Projects é um exemplo de destino, não o único; serve igual
+pra alimentar outro agente, um vector DB próprio, ou só pra ter o
+material em texto pronto pra qualquer uso.
 
 ```bash
 docker compose up -d --build
@@ -98,20 +102,22 @@ docker compose up -d --build
 (o `docker-compose.yml` já sobe o `markitdown-web` e o `markitdown-watch`
 juntos)
 
-**Convenção recomendada** — uma subpasta em `raw/` por Claude Project:
+**Convenção recomendada** — uma subpasta em `raw/` por projeto/tema/destino:
 
 ```
 raw/
 ├── investigacao-cripto/    →  converted/investigacao-cripto/
 │   ├── laudo1.pdf                ├── laudo1.md
-│   └── planilha.xlsx              └── planilha.md
+│   └── planilha.xlsx              ├── planilha.md
+│                                   └── _manifest.json
 └── artigo-rbdpp/            →  converted/artigo-rbdpp/
-    └── rascunho.docx              └── rascunho.md
+    └── rascunho.docx              ├── rascunho.md
+                                    └── _manifest.json
 ```
 
 Cada `.md` gerado sai com um front matter simples (nome do arquivo
-original, caminho e data da conversão), útil pra você rastrear a
-origem depois:
+original, caminho e data da conversão), útil pra rastrear a origem
+depois:
 
 ```markdown
 ---
@@ -121,25 +127,40 @@ converted_at: 2026-09-03T14:32:36
 ---
 ```
 
-**Sobre chunking:** não é necessário fazer manualmente. O RAG dos Claude
-Projects [ativa automaticamente](https://support.claude.com/en/articles/11473015)
-quando o conteúdo do projeto se aproxima do limite da janela de contexto,
-e ele mesmo cuida da indexação/busca — chunking manual só faria sentido
-se o destino fosse um vector DB próprio (Chroma, Qdrant etc.), não é o
-seu caso aqui.
+Cada subpasta de `converted/` também ganha um `_manifest.json`,
+atualizado a cada arquivo processado ali — útil pra qualquer app de
+destino descobrir de uma vez só o que tem na pasta, sem precisar listar
+o diretório:
 
-**O último passo continua manual:** a Anthropic não tem uma API pública
-pra subir arquivos num Project — só dá pra fazer isso arrastando os
-`.md` pra aba Knowledge do Project, pelo navegador. (Existem pacotes não
+```json
+{
+  "gerado_em": "2026-09-03T21:00:00",
+  "arquivos": [
+    {"arquivo": "laudo1.md", "fonte": "laudo1.pdf", "convertido_em": "2026-09-03T20:58:11", "caracteres": 4213}
+  ]
+}
+```
+
+**Sobre chunking:** o pipeline não faz chunking manual — cada app de
+destino resolve isso do seu jeito. No caso específico dos Claude
+Projects, o RAG [ativa automaticamente](https://support.claude.com/en/articles/11473015)
+quando o conteúdo do projeto se aproxima do limite da janela de
+contexto, e ele mesmo cuida da indexação/busca; chunking manual só
+faria sentido se o destino fosse um vector DB próprio (Chroma, Qdrant
+etc.).
+
+**A entrega final no destino é manual ou por conta de cada app** — o
+pipeline entrega até `converted/`, com `.md` + manifesto; não há
+integração automatizada com nenhum destino específico. No caso de um
+Claude Project, por exemplo: a Anthropic não tem uma API pública pra
+subir arquivos num Project — só dá pra fazer isso arrastando os `.md`
+pra aba Knowledge do Project, pelo navegador. (Existem pacotes não
 oficiais que automatizam isso reaproveitando a sessão do seu navegador,
 mas não recomendo — dependem de guardar sua chave de sessão, o que é um
-risco de segurança desnecessário pra esse ganho.) Fora essa etapa final,
-tudo antes dela — captura, conversão, organização por projeto — já fica
-100% automático com o `watch.py` rodando.
-
-Limite bom de saber: arquivos de Project ficam em até 30MB cada, sem
-limite de quantidade — os `.md` do MarkItDown ficam bem abaixo disso na
-grande maioria dos casos.
+risco de segurança desnecessário pra esse ganho.) Limite bom de saber
+nesse caso: arquivos de Project ficam em até 30MB cada, sem limite de
+quantidade — os `.md` do MarkItDown ficam bem abaixo disso na grande
+maioria dos casos.
 
 ## Formatos suportados no modo offline
 

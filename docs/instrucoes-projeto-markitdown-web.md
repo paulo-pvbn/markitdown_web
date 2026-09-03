@@ -4,7 +4,7 @@
 
 ## O que é
 
-Interface web offline + pipeline automatizado (Flask + watchdog) que converte PDF/Word/Excel/PowerPoint/HTML/Outlook para Markdown. Construído em cima do fork pessoal do [MarkItDown](https://github.com/paulo-pvbn/markitdown_web) (Microsoft). Objetivo: alimentar Claude Projects como conhecimento de RAG a partir de material heterogêneo, sem upload manual arquivo por arquivo.
+Interface web offline + pipeline automatizado (Flask + watchdog) que converte PDF/Word/Excel/PowerPoint/HTML/Outlook para Markdown. Construído em cima do fork pessoal do [MarkItDown](https://github.com/paulo-pvbn/markitdown_web) (Microsoft). Objetivo: transformar material heterogêneo numa pasta de Markdown pronta pra qualquer app ou agente de IA consumir (RAG, fine-tuning, contexto manual) — Claude Projects é um exemplo de destino, não o único.
 
 ## Arquitetura
 
@@ -22,12 +22,12 @@ Fora de propósito: transcrição de áudio (API de voz do Google), transcriçã
 
 ## Decisões técnicas vivas
 
-- **RAG dos Claude Projects é automático** — quando o conteúdo se aproxima do limite da janela de contexto, o Claude ativa busca por trecho relevante sozinho ([fonte](https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects)). Por isso não há chunking manual no pipeline.
+- **Não há chunking manual no pipeline** — cada app/agente de destino resolve indexação/busca do seu jeito. No caso específico dos Claude Projects, o RAG já é automático (ativa busca por trecho relevante quando o conteúdo se aproxima do limite da janela de contexto — [fonte](https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects)), mas o pipeline não presume isso pra nenhum outro consumidor.
 - **Extras de rede excluídos de propósito** — todos dependem de API externa.
-- **Upload final pro Claude Project é manual, sem solução automatizada** — não existe API pública da Anthropic pra isso. Pacotes não-oficiais existem (reaproveitando sessão logada do navegador), mas dependem de guardar a chave de sessão da conta — risco de segurança desnecessário pro ganho.
+- **Entrega final no destino (upload, ingestão, indexação) é manual ou de responsabilidade de cada app** — o pipeline entrega até a pasta `converted/` com `.md` + manifesto; não há integração automatizada com nenhum destino específico. No caso de Claude Projects, isso significa upload manual no navegador (sem API pública da Anthropic pra isso — pacotes não-oficiais existem reaproveitando sessão logada, mas dependem de guardar a chave de sessão da conta, risco de segurança desnecessário pro ganho).
 - **Host/porta via env var (`HOST`/`PORT`), não hardcoded** — mesmo código-fonte atende uso local, rede/Tailscale e VPS sem branch separado.
 - **`app.py` e `watch.py` importam o `markitdown` do próprio repositório**, não do PyPI.
-- **Convenção de pastas do pipeline**: uma subpasta em `raw/<projeto>/` por Claude Project que o material vai alimentar; `.md` correspondente sai em `converted/<projeto>/` com front matter (`source`, `source_path`, `converted_at`).
+- **Convenção de pastas do pipeline**: uma subpasta em `raw/<nome>/` por projeto/tema/destino que o material vai alimentar (Claude Project, outro agente, um vector DB, etc.); `.md` correspondente sai em `converted/<nome>/` com front matter (`source`, `source_path`, `converted_at`) e um manifesto por subpasta (`_manifest.json`, ver Ordem 04) listando todos os arquivos convertidos ali.
 
 ## Três formas de rodar (documentadas em `webapp/README.md`)
 
