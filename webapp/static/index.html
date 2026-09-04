@@ -164,9 +164,19 @@
     font-size: 12px;
     padding: 30px 20px;
   }
+  .exit-btn {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 10;
+    font-size: 12px;
+    padding: 5px 10px;
+  }
 </style>
 </head>
 <body>
+
+<button class="btn-ghost exit-btn" id="exitBtn" title="Encerrar o servidor">Sair</button>
 
 <header>
   <h1>MarkItDown — Conversor Offline</h1>
@@ -205,6 +215,20 @@ const zipBtn = document.getElementById('zipBtn');
 const clearBtn = document.getElementById('clearBtn');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
+const exitBtn = document.getElementById('exitBtn');
+
+exitBtn.addEventListener('click', async () => {
+  if (!confirm('Encerrar o MarkItDown Web?')) return;
+  try {
+    await fetch('/shutdown', { method: 'POST' });
+  } catch (_) {
+    // esperado: a conexao pode cair antes da resposta chegar, ja que o
+    // servidor esta encerrando neste exato momento
+  }
+  document.body.innerHTML =
+    '<p style="padding:60px 20px;text-align:center;color:#9aa1ad;font-family:inherit;">' +
+    'MarkItDown Web encerrado. Pode fechar esta aba.</p>';
+});
 
 dropzone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => addFiles(e.target.files));

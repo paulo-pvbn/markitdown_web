@@ -16,6 +16,8 @@ import io
 import os
 import sys
 import tempfile
+import threading
+import time
 import zipfile
 from pathlib import Path
 
@@ -58,6 +60,24 @@ def _upload_too_large(_e):
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
+
+
+_LOCALHOST_ADDRS = {"127.0.0.1", "::1"}
+
+
+@app.route("/shutdown", methods=["POST"])
+def shutdown():
+    # So aceita de localhost - em modo rede/Tailscale (HOST=0.0.0.0), um
+    # cliente remoto nao pode encerrar o servidor de outra maquina (Ordem 11).
+    if request.remote_addr not in _LOCALHOST_ADDRS:
+        return jsonify({"error": "Encerramento só é permitido a partir de localhost."}), 403
+
+    def _delayed_exit():
+        time.sleep(0.5)  # da tempo da resposta HTTP chegar no navegador antes de sair
+        os._exit(0)
+
+    threading.Thread(target=_delayed_exit, daemon=True).start()
+    return jsonify({"ok": True, "message": "Encerrando..."})
 
 
 # Mesmo valor de OCR_EMPTY_THRESHOLD em watch.py (Ordem 07) - abaixo disso, o

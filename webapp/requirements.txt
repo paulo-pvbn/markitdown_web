@@ -28,3 +28,8 @@ pypdfium2>=4.30
 # dicionario pra descartar lixo de OCR. Dicionarios pt/en vem
 # empacotados localmente no proprio pacote, sem download.
 pyspellchecker>=0.8
+
+# launcher.py (Ordem 11): identifica e encerra uma instancia anterior do
+# .exe ainda rodando (nome do processo, encerramento limpo com fallback
+# pra forcado).
+psutil>=6.0
