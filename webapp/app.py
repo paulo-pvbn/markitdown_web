@@ -59,6 +59,20 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+# Mesmo valor de OCR_EMPTY_THRESHOLD em watch.py (Ordem 07) - abaixo disso, o
+# corpo convertido de um PDF e considerado "sem texto extraivel" (hipotese
+# razoavel de scan sem OCR, nao um diagnostico certo: um PDF vazio/corrompido
+# de verdade cai no mesmo caso).
+OCR_EMPTY_THRESHOLD = 50
+
+OCR_PENDENTE_MSG = (
+    "PDF parece ser escaneado (sem texto embutido) — a interface manual não "
+    "faz OCR. Para extrair o texto, use o pipeline automático: solte o "
+    "arquivo em raw/<pasta>/ e rode 'python ocr_batch.py raw/<pasta>' depois "
+    "que o watch.py processar."
+)
+
+
 def _convert_one(file_storage):
     original_name = file_storage.filename or "arquivo"
     suffix = Path(original_name).suffix
@@ -68,9 +82,10 @@ def _convert_one(file_storage):
             file_storage.save(tmp.name)
             tmp_path = tmp.name
         result = md.convert(tmp_path)
-        return original_name, result.markdown, None
+        ocr_pendente = suffix.lower() == ".pdf" and len(result.markdown.strip()) < OCR_EMPTY_THRESHOLD
+        return original_name, result.markdown, None, ocr_pendente
     except Exception as e:  # noqa: BLE001 - queremos reportar qualquer erro de conversão ao usuário
-        return original_name, None, str(e)
+        return original_name, None, str(e), False
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -84,8 +99,10 @@ def convert():
 
     results = []
     for f in files:
-        name, markdown, error = _convert_one(f)
-        if error:
+        name, markdown, error, ocr_pendente = _convert_one(f)
+        if ocr_pendente:
+            results.append({"filename": name, "ok": False, "ocr_pendente": True, "error": OCR_PENDENTE_MSG})
+        elif error:
             results.append({"filename": name, "ok": False, "error": error})
         else:
             results.append({"filename": name, "ok": True, "markdown": markdown})
@@ -104,16 +121,21 @@ def convert_zip():
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         used_names = set()
         for f in files:
-            name, markdown, error = _convert_one(f)
+            name, markdown, error, ocr_pendente = _convert_one(f)
             stem = Path(name).stem or "arquivo"
-            out_name = f"{stem}.md" if not error else f"{stem}_ERRO.txt"
+            if ocr_pendente:
+                out_name, content = f"{stem}_PRECISA_OCR.txt", OCR_PENDENTE_MSG
+            elif error:
+                out_name, content = f"{stem}_ERRO.txt", error
+            else:
+                out_name, content = f"{stem}.md", markdown
             base_out_name = out_name
             i = 1
             while out_name in used_names:
                 out_name = f"{stem}_{i}{Path(base_out_name).suffix}"
                 i += 1
             used_names.add(out_name)
-            zf.writestr(out_name, markdown if not error else error)
+            zf.writestr(out_name, content)
 
     buffer.seek(0)
     return send_file(

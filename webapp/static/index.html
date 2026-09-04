@@ -16,6 +16,7 @@
     --accent-dim: #3a5ac2;
     --ok: #4caf7d;
     --err: #e0645a;
+    --warn: #e0a83a;
     --radius: 10px;
   }
   * { box-sizing: border-box; }
@@ -122,6 +123,7 @@
   .badge { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
   .badge.ok { background: rgba(76,175,125,.15); color: var(--ok); }
   .badge.err { background: rgba(224,100,90,.15); color: var(--err); }
+  .badge.warn { background: rgba(224,168,58,.15); color: var(--warn); }
   .result-body textarea {
     width: 100%;
     min-height: 180px;
@@ -137,6 +139,12 @@
   .result-body .error-text {
     padding: 14px;
     color: var(--err);
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
+  }
+  .result-body .warn-text {
+    padding: 14px;
+    color: var(--warn);
     font-size: 13px;
     font-family: ui-monospace, monospace;
   }
@@ -356,6 +364,17 @@ function renderResult(r) {
       a.click();
       URL.revokeObjectURL(url);
     });
+  } else if (r.ocr_pendente) {
+    card.innerHTML = `
+      <div class="result-head">
+        <span class="name">${escapeHtml(r.filename)}</span>
+        <span class="badge warn">precisa de OCR</span>
+      </div>
+      <div class="result-body">
+        <div class="warn-text"></div>
+      </div>
+    `;
+    card.querySelector('.warn-text').textContent = r.error;
   } else {
     card.innerHTML = `
       <div class="result-head">
