@@ -64,6 +64,8 @@
   .dropzone strong { color: var(--text); }
   input[type=file] { display: none; }
 
+  .folder-select { margin-top: 10px; }
+
   .actions {
     display: flex;
     gap: 10px;
@@ -120,6 +122,11 @@
     background: var(--panel-2);
   }
   .result-head .name { font-size: 13.5px; font-weight: 500; }
+  .result-meta {
+    padding: 4px 14px 0;
+    color: var(--text-dim);
+    font-size: 11.5px;
+  }
   .badge { font-size: 11px; padding: 2px 8px; border-radius: 100px; }
   .badge.ok { background: rgba(76,175,125,.15); color: var(--ok); }
   .badge.err { background: rgba(224,100,90,.15); color: var(--err); }
@@ -189,6 +196,11 @@
     <input type="file" id="fileInput" multiple>
   </div>
 
+  <div class="folder-select">
+    <button class="btn-ghost" id="folderBtn">Selecionar pasta</button>
+    <input type="file" id="folderInput" webkitdirectory multiple>
+  </div>
+
   <div class="filelist" id="fileList"></div>
 
   <div class="actions">
@@ -216,6 +228,11 @@ const clearBtn = document.getElementById('clearBtn');
 const statusEl = document.getElementById('status');
 const resultsEl = document.getElementById('results');
 const exitBtn = document.getElementById('exitBtn');
+const folderBtn = document.getElementById('folderBtn');
+const folderInput = document.getElementById('folderInput');
+
+folderBtn.addEventListener('click', () => folderInput.click());
+folderInput.addEventListener('change', e => { addFiles(e.target.files); folderInput.value = ''; });
 
 exitBtn.addEventListener('click', async () => {
   if (!confirm('Encerrar o MarkItDown Web?')) return;
@@ -257,6 +274,17 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// Estimativa simples (nao e' contagem exata de tokens de verdade - por
+// isso o "~" sempre acompanha o numero, ver Ordem 12).
+function estimateTokens(chars) {
+  return Math.round(chars / 4);
+}
+
+function formatStats(chars) {
+  const tokens = estimateTokens(chars);
+  return `${chars.toLocaleString('pt-BR')} caracteres · ~${tokens.toLocaleString('pt-BR')} tokens (aprox.)`;
+}
+
 function renderFileList() {
   fileListEl.innerHTML = '';
   selectedFiles.forEach((f, idx) => {
@@ -296,30 +324,53 @@ async function readErrorMessage(res) {
   return `O servidor respondeu com erro inesperado (HTTP ${res.status}).`;
 }
 
-convertBtn.addEventListener('click', async () => {
-  if (selectedFiles.length === 0) return;
-  convertBtn.disabled = true;
-  statusEl.textContent = 'Convertendo...';
-  resultsEl.innerHTML = '';
-
+// Converte um arquivo por vez, em sequencia (nao em paralelo, sem
+// streaming/SSE) - simples de propósito (Ordem 12). Cada requisicao so
+// tem um arquivo, entao data.results sempre tem no maximo 1 item aqui.
+async function convertOneFile(file) {
   const formData = new FormData();
-  selectedFiles.forEach(f => formData.append('files', f));
-
+  formData.append('files', file);
   try {
     const res = await fetch('/convert', { method: 'POST', body: formData });
     if (!res.ok) {
-      statusEl.textContent = 'Erro: ' + await readErrorMessage(res);
-      return;
+      return { filename: file.name, ok: false, error: await readErrorMessage(res) };
     }
     const data = await res.json();
     if (data.error) {
-      statusEl.textContent = 'Erro: ' + data.error;
-    } else {
-      statusEl.textContent = `${data.results.length} arquivo(s) processado(s).`;
-      data.results.forEach(renderResult);
+      return { filename: file.name, ok: false, error: data.error };
     }
+    return data.results[0];
   } catch (err) {
-    statusEl.textContent = 'Erro de conexão com o servidor local: ' + err.message;
+    return { filename: file.name, ok: false, error: 'Erro de conexão com o servidor local: ' + err.message };
+  }
+}
+
+convertBtn.addEventListener('click', async () => {
+  if (selectedFiles.length === 0) return;
+  convertBtn.disabled = true;
+  resultsEl.innerHTML = '';
+
+  const total = selectedFiles.length;
+  let okCount = 0;
+  let totalChars = 0;
+
+  try {
+    for (let i = 0; i < total; i++) {
+      statusEl.textContent = total > 1 ? `Convertendo ${i + 1} de ${total}...` : 'Convertendo...';
+      // continua pro proximo arquivo mesmo se este falhar - mesma
+      // tolerancia a erro que /convert-zip ja tem, nao aborta o lote.
+      const r = await convertOneFile(selectedFiles[i]);
+      if (r.ok) {
+        okCount++;
+        totalChars += r.markdown.length;
+      }
+      renderResult(r);
+    }
+    let summary = `${okCount} de ${total} arquivo(s) convertido(s) com sucesso.`;
+    if (total > 1 && totalChars > 0) {
+      summary += ` Total: ${formatStats(totalChars)}`;
+    }
+    statusEl.textContent = summary;
   } finally {
     convertBtn.disabled = false;
   }
@@ -364,6 +415,7 @@ function renderResult(r) {
         <span class="name">${escapeHtml(r.filename)}</span>
         <span class="badge ok">convertido</span>
       </div>
+      <div class="result-meta">${formatStats(r.markdown.length)}</div>
       <div class="result-body">
         <textarea readonly></textarea>
       </div>
