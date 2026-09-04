@@ -33,6 +33,9 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# ...exceto o spec do MarkItDown Web (Ordem 06): escrito a mao, faz parte
+# do contrato de entrega do projeto, precisa ser versionado.
+!webapp/markitdown-web.spec
 
 # Installer logs
 pip-log.txt
