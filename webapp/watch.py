@@ -42,6 +42,11 @@ md = MarkItDown(enable_plugins=False)
 
 IGNORED_SUFFIXES = {".md", ".tmp", ".crdownload", ".part"}
 
+# Abaixo deste tamanho de corpo (em caracteres), um PDF e considerado
+# "sem texto extraivel" - normalmente um scan de imagem sem OCR. Nao
+# tenta detectar scan parcial (algumas paginas com texto, outras nao).
+OCR_EMPTY_THRESHOLD = 50
+
 MANIFEST_NAME = "_manifest.json"
 
 
@@ -147,13 +152,19 @@ def convert_file(src_path: Path) -> None:
         return
 
     converted_at = datetime.datetime.now().isoformat(timespec="seconds")
+    # PDF com corpo vazio/quase vazio geralmente e um scan sem texto embutido
+    # (ver Ordem 03) - sinaliza pro ocr_batch.py resolver depois, sem
+    # bloquear o pipeline em tempo real com OCR sincrono aqui.
+    ocr_pendente = src_path.suffix.lower() == ".pdf" and len(result.markdown.strip()) < OCR_EMPTY_THRESHOLD
     front_matter = (
         "---\n"
         f"source: {src_path.name}\n"
         f"source_path: raw/{rel.as_posix()}\n"
         f"converted_at: {converted_at}\n"
-        "---\n\n"
     )
+    if ocr_pendente:
+        front_matter += "ocr_pendente: true\n"
+    front_matter += "---\n\n"
     out_path.write_text(front_matter + result.markdown, encoding="utf-8")
     _update_manifest(
         out_path.parent,

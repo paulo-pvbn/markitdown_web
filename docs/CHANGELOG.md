@@ -2,12 +2,12 @@
 
 > Índice rápido de reorientação. Se você (ou uma sessão nova, sem memória desta conversa) está retomando do zero, leia nesta ordem: **1) este arquivo → 2) `docs/instrucoes-projeto-markitdown-web.md` → 3) o `audit/*.md` mais recente listado abaixo → 4) `ordens/` pra ver o que ainda não rodou.** A página do Notion (link no fim) tem o mesmo conteúdo, pra quando as pastas locais não estiverem à mão.
 
-## Estado agora (2026-09-03, fim de sessão de chat)
+## Estado agora (2026-09-03, fim de sessão de Claude Code)
 
-- **Repositório**: https://github.com/paulo-pvbn/markitdown_web — fork publicado, commit `51e6546`, tag `v1.00`.
-- **Concluído e testado**: Ordens 01–05 (ver tabela abaixo). Interface manual + pipeline automático + manifesto funcionando. OCR: Tesseract escolhido e recomendado, ainda não implementado no código.
-- **Prestes a rodar** (você está saindo antes de confirmar o resultado): **Ordem 06** (empacotar `.exe`) e **Ordem 07** (implementar OCR via Tesseract). Nenhuma das duas depende da outra — podem rodar em qualquer ordem, inclusive em paralelo em sessões diferentes do Claude Code.
-- **Importante sobre interrupção**: fechar o chat aqui **não afeta** o Claude Code rodando no seu terminal — são processos totalmente independentes. O risco real é só se o próprio Claude Code for interrompido no meio de uma Ordem (ex.: fechar o VS Code durante os ~30 min do OCR do livro inteiro). Se isso acontecer antes do commit de fim de Ordem, não há checkpoint parcial — a Ordem precisaria recomeçar do início, não é perda de dados do projeto, só de tempo de execução.
+- **Repositório**: https://github.com/paulo-pvbn/markitdown_web — fork publicado, commit `51e6546`, tag `v1.00`, mais commits das Ordens 02–07 em `main`.
+- **Concluído e testado**: Ordens 01–07 (ver tabela abaixo). Interface manual + pipeline automático + manifesto + `.exe` empacotado + OCR em lote via Tesseract, todos funcionando.
+- **Marco**: o livro-piloto da Ordem 03 (`733086206-Mercado-Financeiro-13ed.pdf`, 418 páginas escaneadas) foi processado por inteiro via `ocr_batch.py` na Ordem 07 — `.md` pronto (com `ocr_revisar: true`, recomenda revisão humana antes do upload) pra alimentar o Claude Project "InvestBot" quando o Paulo for criá-lo.
+- Nenhuma `ORDEM-08` foi criada — próximo passo é decisão do arquiteto/usuário, não uma ordem já escrita.
 
 ## Histórico de Ordens
 
@@ -18,14 +18,15 @@
 | 03 | Piloto com material real — revelou PDF escaneado sem texto (gap de cobertura) | ✅ Concluída (achado documentado, não resolvido) | `audit/2026-09-03-ORDEM-03-piloto-real-claude-project.md` |
 | 04 | Generalizou o pipeline (framing "qualquer app de IA") + `_manifest.json` por pasta | ✅ Concluída | `audit/2026-09-03-ORDEM-04-generalizar-pipeline.md` |
 | 05 | Comparou Tesseract vs. rapidocr — Tesseract venceu com folga (8–17× mais rápido, qualidade muito melhor) | ✅ Concluída (investigação, recomendação registrada) | `audit/2026-09-03-ORDEM-05-comparar-ocr-tesseract-rapidocr.md` |
-| 06 | Empacotar interface manual como `.exe` (duplo clique, sem terminal) | ⏳ Pronta pra rodar, ainda não executada | `ordens/ORDEM-06-empacotar-exe.md` |
-| 07 | Implementar OCR via Tesseract, como job em lote separado do `watch.py` | ⏳ Pronta pra rodar, ainda não executada | `ordens/ORDEM-07-ocr-tesseract-lote.md` |
+| 06 | Empacotou interface manual como `.exe` (72MB, sem terminal, testado com conversão real dentro do binário) | ✅ Concluída | `audit/2026-09-03-ORDEM-06-empacotar-exe.md` |
+| 07 | Implementou OCR via Tesseract em lote (`ocr_batch.py`) + sinalização `ocr_pendente` no `watch.py`; rodou o livro-piloto inteiro (418 páginas, ~27min) | ✅ Concluída | `audit/2026-09-03-ORDEM-07-ocr-tesseract-lote.md` |
 
 ## Decisões-chave já tomadas (não re-perguntar)
 
 - Pular Docker por enquanto (venv resolve pros testes atuais).
-- Tesseract, não rapidocr, se/quando OCR for implementado — já decidido, Ordem 07 já escrita nessa direção.
-- OCR roda como job em lote manual, nunca síncrono no `watch.py`.
+- Tesseract, não rapidocr — implementado na Ordem 07 (`ocr_batch.py`).
+- OCR roda como job em lote manual (`ocr_batch.py`), nunca síncrono no `watch.py` — o `watch.py` só sinaliza `ocr_pendente: true`.
+- `ocr_revisar: true` fica pra sempre no front matter de qualquer `.md` que passou por OCR — nunca removido automaticamente, mesmo Tesseract erra em tabela/coluna dupla.
 - `.exe` na versão simples (abre navegador), não `pywebview` (janela nativa) — não proporcional pro ganho.
 - Pipeline reposicionado como genérico ("qualquer app de IA"), não exclusivo a Claude Projects.
 - Upload final pro Claude Project continua manual — sem API pública da Anthropic pra isso, e não vale o risco de segurança de soluções não-oficiais baseadas em sessão do navegador.

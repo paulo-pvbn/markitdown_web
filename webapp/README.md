@@ -168,6 +168,41 @@ PDF, Word (`.docx`), PowerPoint (`.pptx`), Excel novo e antigo
 (`.xlsx`/`.xls`), mensagens do Outlook (`.msg`), HTML, CSV/JSON/XML, ZIP
 (itera pelo conteúdo), EPUB e imagens (metadados EXIF).
 
+## OCR local (opcional) — PDF escaneado
+
+Um PDF que é só imagem escaneada (sem texto embutido) converte pra um
+`.md` vazio — o `markitdown` não faz OCR por padrão (ver Ordem 03). O
+`watch.py` detecta esse caso sozinho (corpo do `.md` vazio/quase vazio
+num PDF) e acrescenta `ocr_pendente: true` no front matter, sem tentar
+resolver na hora — OCR é lento (Tesseract, ~4-5s por página; um livro de
+~400 páginas leva uns 30 minutos) e nunca roda de forma síncrona dentro
+do pipeline em tempo real.
+
+Pra resolver os pendentes, rode `ocr_batch.py` manualmente, apontando pra
+uma subpasta de `raw/`:
+
+```bash
+python ocr_batch.py raw/InvestBot
+```
+
+Ele localiza os `.md` com `ocr_pendente: true` na subpasta correspondente
+de `converted/`, faz OCR do PDF original (Tesseract, português + inglês,
+300 DPI — configuração validada na Ordem 05) e substitui o conteúdo,
+mostrando o progresso página a página. O front matter passa a ter
+`ocr: true`, `ocr_engine: tesseract` e `ocr_revisar: true` — este último
+fica pra sempre, mesmo depois do OCR: mesmo o melhor motor testado erra
+em layout de tabela/coluna dupla, então revisão humana continua
+recomendada. Rodar `ocr_batch.py` de novo sobre o mesmo arquivo é
+seguro — ele sempre refaz o OCR e sobrescreve, sem tentar adivinhar se
+"já foi feito".
+
+**Pré-requisito**: Tesseract instalado no sistema — **não** é um pacote
+pip, precisa do binário. No Windows, instale via
+[UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki)
+(inclua o pacote de idioma português na instalação). Se não ficar no
+`PATH`, defina a variável de ambiente `TESSERACT_CMD` com o caminho
+completo do executável antes de rodar `ocr_batch.py`.
+
 ## Por que alguns recursos do MarkItDown ficam de fora
 
 O `requirements.txt` instala só os extras que **não** dependem de rede:
@@ -190,6 +225,9 @@ o `MarkItDown()` em `app.py` é o único ponto de configuração.
 webapp/
 ├── app.py              # Flask: serve o front-end e expõe /convert e /convert-zip (uso manual)
 ├── watch.py             # monitora raw/ e converte sozinho pra converted/ (uso automatizado)
+├── ocr_batch.py         # OCR em lote (Tesseract) pra .md com ocr_pendente: true (Ordem 07)
+├── launcher.py           # sobe app.py e abre o navegador sozinho - base do .exe (Ordem 06)
+├── markitdown-web.spec  # build do .exe via PyInstaller (pyinstaller markitdown-web.spec)
 ├── requirements.txt    # Flask + watchdog + markitdown (extras offline) instalado direto deste repo
 ├── Dockerfile           # imagem única usada pelos dois serviços do docker-compose.yml
 ├── docker-compose.yml   # sobe markitdown-web + markitdown-watch juntos

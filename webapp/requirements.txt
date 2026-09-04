@@ -16,3 +16,10 @@ watchdog>=4.0
 # HTML, CSV/JSON/XML, ZIP, EPUB e metadados de imagem já funcionam com as
 # dependências básicas do markitdown, sem precisar de extras.
 -e ../packages/markitdown[pptx,docx,xlsx,xls,pdf,outlook]
+
+# OCR em lote pra PDF escaneado (ocr_batch.py) - Tesseract em si é
+# dependência de sistema, não pip (ver README.md); estes dois pacotes só
+# fazem a ponte com o Tesseract (pytesseract) e renderizam páginas do PDF
+# como imagem pro OCR (pypdfium2, já usado internamente pelo markitdown).
+pytesseract>=0.3.10
+pypdfium2>=4.30
