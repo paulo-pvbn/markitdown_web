@@ -254,6 +254,16 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
+async function readErrorMessage(res) {
+  try {
+    const data = await res.json();
+    if (data && data.error) return data.error;
+  } catch (_) {
+    // resposta nao era JSON (ex.: pagina de erro HTML padrao do servidor)
+  }
+  return `O servidor respondeu com erro inesperado (HTTP ${res.status}).`;
+}
+
 convertBtn.addEventListener('click', async () => {
   if (selectedFiles.length === 0) return;
   convertBtn.disabled = true;
@@ -265,6 +275,10 @@ convertBtn.addEventListener('click', async () => {
 
   try {
     const res = await fetch('/convert', { method: 'POST', body: formData });
+    if (!res.ok) {
+      statusEl.textContent = 'Erro: ' + await readErrorMessage(res);
+      return;
+    }
     const data = await res.json();
     if (data.error) {
       statusEl.textContent = 'Erro: ' + data.error;
@@ -289,7 +303,10 @@ zipBtn.addEventListener('click', async () => {
 
   try {
     const res = await fetch('/convert-zip', { method: 'POST', body: formData });
-    if (!res.ok) throw new Error('falha ao gerar o zip');
+    if (!res.ok) {
+      statusEl.textContent = 'Erro: ' + await readErrorMessage(res);
+      return;
+    }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

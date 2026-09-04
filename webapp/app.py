@@ -35,8 +35,23 @@ app = Flask(__name__, static_folder="static", static_url_path="")
 # => conversão 100% local, sem sair para a internet.
 md = MarkItDown(enable_plugins=False)
 
-MAX_UPLOAD_MB = 50
+# Uso pessoal/local, não exposto publicamente - limite generoso por padrão,
+# ajustável via env var (mesmo padrão de HOST/PORT) se um arquivo real ainda
+# assim for maior que isso.
+MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "500"))
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+# Limite separado do Werkzeug >=3.1 pro buffer interno de parsing de
+# multipart/form-data (não é específico de campo de texto - também trava
+# upload de arquivo grande, ver Ordem 08). MAX_CONTENT_LENGTH já protege
+# contra requisição gigante, então desativa esse teto à parte.
+app.config["MAX_FORM_MEMORY_SIZE"] = None
+
+
+@app.errorhandler(413)
+def _upload_too_large(_e):
+    # Sem isso, o Flask devolve uma pagina HTML de erro e o frontend quebra
+    # tentando fazer res.json() nela (ver Ordem 08).
+    return jsonify({"error": f"Arquivo muito grande. Limite atual: {MAX_UPLOAD_MB} MB."}), 413
 
 
 @app.route("/")
