@@ -35,6 +35,8 @@ from pathlib import Path
 import pypdfium2 as pdfium
 import pytesseract
 
+from purify import purify_markdown
+
 RAW_DIR = Path(os.environ.get("RAW_DIR", "raw")).resolve()
 CONVERTED_DIR = Path(os.environ.get("CONVERTED_DIR", "converted")).resolve()
 
@@ -143,10 +145,21 @@ def _ocr_pdf(pdf_path: Path) -> str:
 
 
 def _rewrite_md(md_path: Path, meta: dict, ocr_text: str) -> int:
+    ocr_text, _purify_stats = purify_markdown(ocr_text)
     meta["ocr"] = "true"
     meta["ocr_engine"] = "tesseract"
     meta["ocr_revisar"] = "true"
-    order = ["source", "source_path", "converted_at", "ocr_pendente", "ocr", "ocr_engine", "ocr_revisar"]
+    meta["purified"] = "true"
+    order = [
+        "source",
+        "source_path",
+        "converted_at",
+        "ocr_pendente",
+        "ocr",
+        "ocr_engine",
+        "ocr_revisar",
+        "purified",
+    ]
     lines = ["---"]
     for key in order:
         if key in meta:

@@ -28,6 +28,7 @@ if _LOCAL_MARKITDOWN_SRC.exists():
     sys.path.insert(0, str(_LOCAL_MARKITDOWN_SRC))
 
 from markitdown import MarkItDown  # noqa: E402
+from purify import purify_markdown
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
@@ -82,8 +83,10 @@ def _convert_one(file_storage):
             file_storage.save(tmp.name)
             tmp_path = tmp.name
         result = md.convert(tmp_path)
+        # checagem roda no texto bruto, antes da purificacao (Ordem 10)
         ocr_pendente = suffix.lower() == ".pdf" and len(result.markdown.strip()) < OCR_EMPTY_THRESHOLD
-        return original_name, result.markdown, None, ocr_pendente
+        markdown, _purify_stats = purify_markdown(result.markdown)
+        return original_name, markdown, None, ocr_pendente
     except Exception as e:  # noqa: BLE001 - queremos reportar qualquer erro de conversão ao usuário
         return original_name, None, str(e), False
     finally:

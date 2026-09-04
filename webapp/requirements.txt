@@ -23,3 +23,8 @@ watchdog>=4.0
 # como imagem pro OCR (pypdfium2, já usado internamente pelo markitdown).
 pytesseract>=0.3.10
 pypdfium2>=4.30
+
+# Purificacao de conteudo pra RAG (purify.py, Ordem 10) - checagem de
+# dicionario pra descartar lixo de OCR. Dicionarios pt/en vem
+# empacotados localmente no proprio pacote, sem download.
+pyspellchecker>=0.8

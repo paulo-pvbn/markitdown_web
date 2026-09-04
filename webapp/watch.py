@@ -28,6 +28,7 @@ if _LOCAL_MARKITDOWN_SRC.exists():
     sys.path.insert(0, str(_LOCAL_MARKITDOWN_SRC))
 
 from markitdown import MarkItDown  # noqa: E402
+from purify import purify_markdown
 
 RAW_DIR = Path(os.environ.get("RAW_DIR", "raw")).resolve()
 CONVERTED_DIR = Path(os.environ.get("CONVERTED_DIR", "converted")).resolve()
@@ -154,8 +155,10 @@ def convert_file(src_path: Path) -> None:
     converted_at = datetime.datetime.now().isoformat(timespec="seconds")
     # PDF com corpo vazio/quase vazio geralmente e um scan sem texto embutido
     # (ver Ordem 03) - sinaliza pro ocr_batch.py resolver depois, sem
-    # bloquear o pipeline em tempo real com OCR sincrono aqui.
+    # bloquear o pipeline em tempo real com OCR sincrono aqui. Checagem
+    # roda no texto bruto, antes da purificacao (Ordem 10).
     ocr_pendente = src_path.suffix.lower() == ".pdf" and len(result.markdown.strip()) < OCR_EMPTY_THRESHOLD
+    markdown, _purify_stats = purify_markdown(result.markdown)
     front_matter = (
         "---\n"
         f"source: {src_path.name}\n"
@@ -164,15 +167,16 @@ def convert_file(src_path: Path) -> None:
     )
     if ocr_pendente:
         front_matter += "ocr_pendente: true\n"
+    front_matter += "purified: true\n"
     front_matter += "---\n\n"
-    out_path.write_text(front_matter + result.markdown, encoding="utf-8")
+    out_path.write_text(front_matter + markdown, encoding="utf-8")
     _update_manifest(
         out_path.parent,
         {
             "arquivo": out_path.name,
             "fonte": src_path.name,
             "convertido_em": converted_at,
-            "caracteres": len(result.markdown),
+            "caracteres": len(markdown),
         },
     )
     print(f"[OK] {rel} -> converted/{out_path.relative_to(CONVERTED_DIR).as_posix()}", flush=True)

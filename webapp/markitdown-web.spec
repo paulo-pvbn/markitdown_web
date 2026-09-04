@@ -7,9 +7,12 @@ navegador (via launcher.py) - sem terminal visivel.
 
 O magika (usado pelo markitdown pra detectar tipo de arquivo) carrega um
 modelo ONNX e um JSON de tipos de conteudo em tempo de execucao a partir
-de arquivos dentro do proprio pacote (magika/models/, magika/config/) -
-PyInstaller nao inclui isso automaticamente por serem dados, nao codigo,
-entao precisam ser coletados explicitamente com collect_data_files.
+de arquivos dentro do proprio pacote (magika/models/, magika/config/).
+O spellchecker (purify.py, Ordem 10) carrega dicionarios pt/en de
+arquivos .json.gz dentro do proprio pacote (spellchecker/resources/).
+Nenhum dos dois e' incluido automaticamente pelo PyInstaller por serem
+dados, nao codigo - precisam ser coletados explicitamente com
+collect_data_files.
 
 Uso:
     pyinstaller markitdown-web.spec
@@ -18,6 +21,7 @@ Uso:
 from PyInstaller.utils.hooks import collect_data_files
 
 magika_datas = collect_data_files("magika")
+spellchecker_datas = collect_data_files("spellchecker")
 
 a = Analysis(
     ["launcher.py"],
@@ -26,6 +30,7 @@ a = Analysis(
     datas=[
         ("static", "static"),
         *magika_datas,
+        *spellchecker_datas,
     ],
     hiddenimports=["app"],
     hookspath=[],
